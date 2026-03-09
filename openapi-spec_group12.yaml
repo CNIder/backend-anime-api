@@ -1,0 +1,617 @@
+openapi: 3.0.3
+info:
+  title: FCUL Anime API
+  description: Cloud computing project API for searching anime details, retrieving seasonal top anime, and getting recommendations using the MyAnimeList dataset.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/anime-api
+    description: Local development server
+
+tags:
+  - name: Anime
+    description: Anime catalog operations
+
+  - name: Recommendations
+    description: Anime recommendation engine
+
+  - name: Users
+    description: User profile management
+
+  - name: Watchlists
+    description: User watchlist management
+
+  - name: Reviews
+    description: Anime reviews and ratings
+
+  - name: Forum
+    description: Community discussion forum
+
+  - name: Analytics
+    description: Anime statistics and popularity analytics
+
+paths:
+
+  /anime/search:
+    get:
+      tags: [Anime]
+      summary: Search for an anime by title
+      description: Returns anime information matching a title query.
+      parameters:
+        - name: title
+          in: query
+          required: true
+          description: Title or partial title of the anime
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of matching anime
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Anime'
+
+  /anime/{anime_id}:
+    get:
+      tags: [Anime]
+      summary: Get anime details
+      description: Retrieve full details for a specific anime by ID.
+      parameters:
+        - name: anime_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Anime details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Anime'
+        '404':
+          description: Anime not found
+
+  /anime/top-season:
+    get:
+      tags: [Anime]
+      summary: Get highest-rated anime of a season
+      parameters:
+        - name: season
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [winter, spring, summer, fall]
+
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Highest rated anime in that season
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Anime'
+
+  /recommendations:
+    get:
+      tags: [Recommendations]
+      summary: Get anime recommendations based on user interests
+      parameters:
+        - name: genres
+          in: query
+          schema:
+            type: string
+            example: Action,Adventure
+
+        - name: min_score
+          in: query
+          schema:
+            type: number
+            format: float
+
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [TV, Movie, OVA, Special, ONA]
+
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of recommended anime
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Anime'
+
+  /users:
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      description: Registers a new user in the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+
+  /users/{user_id}:
+    get:
+      tags: [Users]
+      summary: Get profile information
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User profile information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      tags:
+        - Users
+      summary: Delete a user
+      description: Deletes a user profile and associated data.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: user_847392
+      responses:
+        '204':
+          description: User successfully deleted
+        '404':
+          description: User not found
+
+  
+  /users/{user_id}/watchlist:
+    get:
+      tags: [Watchlists]
+      summary: Get user's watchlist
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of anime in the watchlist
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchlistEntry'
+
+    post:
+      tags: [Watchlists]
+      summary: Add anime to watchlist
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchlistCreate'
+      responses:
+        '201':
+          description: Anime added to watchlist
+
+  /users/{user_id}/watchlist/{anime_id}:
+    put:
+      tags: [Watchlists]
+      summary: Update watchlist entry
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+
+        - name: anime_id
+          in: path
+          required: true
+          schema:
+            type: integer
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchlistUpdate'
+
+      responses:
+        '200':
+          description: Watchlist entry updated
+
+    delete:
+      tags: [Watchlists]
+      summary: Remove anime from watchlist
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+
+        - name: anime_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Anime removed from watchlist
+
+  /anime/{anime_id}/reviews:
+    get:
+      tags: [Reviews]
+      summary: Get reviews for an anime
+      parameters:
+        - name: anime_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+
+    post:
+      tags: [Reviews]
+      summary: Write a review
+      parameters:
+        - name: anime_id
+          in: path
+          required: true
+          schema:
+            type: integer
+
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+
+      responses:
+        '201':
+          description: Review created
+
+  /anime/{anime_id}/rating:
+    post:
+      tags: [Reviews]
+      summary: Rate an anime
+      parameters:
+        - name: anime_id
+          in: path
+          required: true
+          schema:
+            type: integer
+
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rating'
+
+      responses:
+        '201':
+          description: Rating submitted
+
+  /forum/questions:
+    get:
+      tags: [Forum]
+      summary: Get forum questions
+      parameters:
+        - name: anime_id
+          in: query
+          schema:
+            type: integer
+
+        - name: tag
+          in: query
+          schema:
+            type: string
+            enum: [plot_discussion, service_issue]
+
+      responses:
+        '200':
+          description: List of forum questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ForumQuestion'
+
+    post:
+      tags: [Forum]
+      summary: Ask a forum question
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForumQuestionCreate'
+
+      responses:
+        '201':
+          description: Question created
+
+  /forum/questions/{question_id}:
+    get:
+      tags: [Forum]
+      summary: Get a forum question
+      parameters:
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Forum question details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForumQuestion'
+
+  /stats/top-anime:
+    get:
+      tags: [Analytics]
+      summary: Get top watched anime
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+
+        - name: genre
+          in: query
+          schema:
+            type: string
+
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Top watched anime
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Anime'
+
+  /stats/anime:
+    get:
+      tags: [Analytics]
+      summary: Get anime statistics
+      responses:
+        '200':
+          description: Statistics information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimeStatistics'
+
+components:
+
+  schemas:
+
+    Anime:
+      type: object
+      properties:
+        anime_id:
+          type: integer
+          example: 1
+        title:
+          type: string
+        genre:
+          type: string
+        type:
+          type: string
+        episodes:
+          type: integer
+        score:
+          type: number
+          format: float
+        members:
+          type: integer
+        synopsis:
+          type: string
+
+    User:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        username:
+          type: string
+        joined_date:
+          type: string
+          format: date
+        watchlist_count:
+          type: integer
+
+    WatchlistEntry:
+      type: object
+      properties:
+        anime_id:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum: [watching, completed, plan_to_watch, dropped]
+        score:
+          type: integer
+        episodes_watched:
+          type: integer
+
+    WatchlistCreate:
+      type: object
+      properties:
+        anime_id:
+          type: integer
+        status:
+          type: string
+        score:
+          type: integer
+        episodes_watched:
+          type: integer
+
+    WatchlistUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        score:
+          type: integer
+        episodes_watched:
+          type: integer
+
+    Review:
+      type: object
+      properties:
+        review_id:
+          type: integer
+        user_id:
+          type: integer
+        anime_id:
+          type: integer
+        username:
+          type: string
+        review_text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ReviewCreate:
+      type: object
+      properties:
+        review_text:
+          type: string
+
+    Rating:
+      type: object
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 10
+
+    ForumQuestion:
+      type: object
+      properties:
+        question_id:
+          type: integer
+        user_id:
+          type: integer
+        anime_id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        tag:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ForumQuestionCreate:
+      type: object
+      properties:
+        anime_id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        tag:
+          type: string
+
+    AnimeStatistics:
+      type: object
+      properties:
+        total_anime:
+          type: integer
+        average_score:
+          type: number
+        most_common_genre:
+          type: string
+        highest_rated_anime:
+          type: string
+        total_members:
+          type: integer
