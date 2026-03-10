@@ -5,6 +5,7 @@ info:
   version: 1.0.0
 
 servers:
+  # Placeholder development url
   - url: http://localhost:8080/anime-api
     description: Local development server
 
@@ -104,12 +105,18 @@ paths:
     get:
       tags: [Recommendations]
       summary: Get anime recommendations based on user interests
+      description: |
+        Returns a list of recommended shows based on the selected filters.
+
+        <b>NOTE:</b> This endpoint is particularly subject to change, as 
+        the recommendation system to be integrated may require different
+        prompting strategies.
       parameters:
         - name: genres
           in: query
           schema:
             type: string
-            example: Action,Adventure
+            example: Action, Adventure
 
         - name: min_score
           in: query
@@ -140,8 +147,7 @@ paths:
 
   /users:
     post:
-      tags:
-        - Users
+      tags: [Users]
       summary: Create a new user
       description: Registers a new user in the system.
       requestBody:
@@ -164,6 +170,7 @@ paths:
     get:
       tags: [Users]
       summary: Get profile information
+      description: Retrieves profile information for a specific user.
       parameters:
         - name: user_id
           in: path
@@ -177,25 +184,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
     delete:
-      tags:
-        - Users
+      tags: [Users]
       summary: Delete a user
-      description: Deletes a user profile and associated data.
+      description: Deletes a user profile, including associated data.
       parameters:
         - name: user_id
           in: path
           required: true
           schema:
-            type: string
-          example: user_847392
+            type: integer
+            example: 847392
       responses:
         '204':
           description: User successfully deleted
+        '401':
+          description: Unauthorized
         '404':
           description: User not found
 
-  
   /users/{user_id}/watchlist:
     get:
       tags: [Watchlists]
@@ -215,6 +225,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/WatchlistEntry'
+        '404':
+          description: User not found
 
     post:
       tags: [Watchlists]
@@ -234,11 +246,17 @@ paths:
       responses:
         '201':
           description: Anime added to watchlist
+        '400':
+          description: Invalid input
+        '404':
+          description: User and/or anime not found
 
   /users/{user_id}/watchlist/{anime_id}:
     put:
       tags: [Watchlists]
       summary: Update watchlist entry
+      description: Modify an anime entry in the watchlist, such as watch
+        status, score and episodes watched.
       parameters:
         - name: user_id
           in: path
@@ -251,17 +269,21 @@ paths:
           required: true
           schema:
             type: integer
-
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/WatchlistUpdate'
-
       responses:
         '200':
           description: Watchlist entry updated
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: User and/or anime not found
 
     delete:
       tags: [Watchlists]
@@ -281,6 +303,10 @@ paths:
       responses:
         '204':
           description: Anime removed from watchlist
+        '401':
+          description: Unauthorized
+        '404':
+          description: User and/or anime not found
 
   /anime/{anime_id}/reviews:
     get:
@@ -301,10 +327,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Review'
+        '404':
+          description: Anime not found
 
     post:
       tags: [Reviews]
       summary: Write a review
+      description: | 
+        Write a review for a particular anime.
+
+        <b>NOTE:</b> This section is subject to security considerations, 
+        such as session tokens, not yet implemented.
       parameters:
         - name: anime_id
           in: path
@@ -317,22 +350,31 @@ paths:
           required: true
           schema:
             type: integer
-
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ReviewCreate'
-
       responses:
         '201':
           description: Review created
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Username and/or anime not found
 
   /anime/{anime_id}/rating:
     post:
       tags: [Reviews]
       summary: Rate an anime
+      description: |
+        Rate an anime according to a scale from 1 to 10.
+
+        <b>NOTE:</b> This section is subject to security considerations, 
+        such as session tokens, not yet implemented.
       parameters:
         - name: anime_id
           in: path
@@ -345,22 +387,27 @@ paths:
           required: true
           schema:
             type: integer
-
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Rating'
-
       responses:
         '201':
           description: Rating submitted
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: User and/or anime not found
 
   /forum/questions:
     get:
       tags: [Forum]
       summary: Get forum questions
+      description: Get all discussion threads posted on the forum.
       parameters:
         - name: anime_id
           in: query
@@ -372,7 +419,6 @@ paths:
           schema:
             type: string
             enum: [plot_discussion, service_issue]
-
       responses:
         '200':
           description: List of forum questions
@@ -520,6 +566,8 @@ components:
 
     WatchlistCreate:
       type: object
+      required:
+        - anime_id
       properties:
         anime_id:
           type: integer
@@ -535,8 +583,10 @@ components:
       properties:
         status:
           type: string
+          enum: [watching, completed, on_hold, dropped, plan_to_watch]
         score:
-          type: integer
+          type: number
+          format: float
         episodes_watched:
           type: integer
 
