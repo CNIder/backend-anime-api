@@ -31,5 +31,4 @@ graph TD
     RATE --- DB4[(Rating DB)]
     REV --- DB5[(Review DB)]
     FORUM --- DB6[(Forum DB)]
-    REC --- DB7[(Rec DB)]
 ```
