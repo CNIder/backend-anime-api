@@ -72,4 +72,4 @@ From the functional requirements listed, the system can be decomposed into multi
 7. Forum / Discussion Service
 8. Analytics / Statistics Service
 
-<img src="diagrama-projeto-cn.png" width="600">
+<img src="diagrama-projeto.png" width="600">
