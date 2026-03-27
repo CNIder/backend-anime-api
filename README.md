@@ -1,4 +1,4 @@
-# Projeto de computacao em nuvem FCUL
+# Cloud Computing Project FCUL
 
 ### Dataset
 The dataset we choose was based on an Anime dataset, available on Kaggle.
