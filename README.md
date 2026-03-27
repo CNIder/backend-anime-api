@@ -35,7 +35,7 @@ We propose the following list of use cases:
 - Write or read a review of the most currently most popular anime.
 - Rate a show based on a fixed scale.
 - Ask a question on the forum regarding the plot twist in an anime's episode or an issue with the service.
-- Get the top watched animes based on a certain criteria (year, genre) and other statistics.
+- Get the top watched anime based on a certain criteria (year, genre) and other statistics.
 
 
 ### Functional Requirements
