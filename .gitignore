@@ -1,0 +1,5 @@
+Phase_4/data/anime-dataset-2023.csv
+Phase_4/data/anime-dataset-2023-utf8.csv
+Phase_4/data/anime_trimmed.csv
+__pycache__/
+*.pyc

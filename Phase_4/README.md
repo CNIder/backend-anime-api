@@ -27,7 +27,7 @@ Phase_4/
 │   ├── dockerfile
 │   └── requirements.txt
 ├── scripts/
-│   └── prepare_data.py
+│   └── full_data_preparation.py
 └── docker-compose.yaml
 ```
 
@@ -57,6 +57,44 @@ To run this project locally, the following software is required:
 
 * Docker
 * Docker Compose
+
+## Dataset
+
+The original dataset must be downloaded manually and placed in the `data/` folder.
+
+Expected input file:
+
+```
+data/anime-dataset-2023.csv
+```
+
+The dataset used in this project was obtained from:
+
+MyAnimeList Dataset (Kaggle):
+https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset?select=anime-dataset-2023.csv
+
+## Data preparation
+
+Run the following command from the `Phase_4` folder:
+
+```
+python scripts/full_data_preparation.py
+```
+
+This script:
+
+* reads the original dataset
+* converts it to UTF-8
+* selects the relevant columns
+* renames `English name` to `english_name`
+* creates the trimmed dataset used by the application
+
+Generated files:
+
+```
+data/anime-dataset-2023-utf8.csv
+data/anime_trimmed.csv
+```
 
 ## How to run
 
