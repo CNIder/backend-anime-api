@@ -1,54 +1,68 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
-import pandas as pd
+from google.cloud import bigquery
+from google.oauth2 import service_account 
+import json, os
 
 class Anime(BaseModel):
     anime_id: int
-    title: str
-    genres: str
-    synopsis: str
-    rank: float
+    Name: str
+    Ranked: float | None = None
 
 app = FastAPI(title="Anime Catalog API")
 
-CSV_FILE = "anime-dataset-2023.csv"
+# Load credentials
+json_string = os.environ.get('API_TOKEN') 
+json_file = json.loads(json_string) 
+credentials = service_account.Credentials.from_service_account_info(json_file) 
+client = bigquery.Client(credentials=credentials, location="europe-west1")
 
-# Carrega o CSV uma vez no startup
-def load_csv(file_path):
-    df = pd.read_csv(file_path)
+# 👉 CHANGE THIS to your actual project.dataset.table
+TABLE_ID = "cm-labs-exemplo.projeto.anime"
 
-    # Seleciona e renomeia colunas
-    cols = ['anime_id', 'Name', 'Genres', 'Synopsis', 'Rank']
-    df_filtered = df[cols].copy()
-    df_filtered.rename(columns={
-        'Name': 'title',
-        'Genres': 'genres',
-        'Synopsis': 'synopsis',
-        'Rank' : 'rank'
-    }, inplace=True)
+# Helper function to run queries
+def run_query(query: str):
+    query_job = client.query(query)
+    return query_job.to_dataframe()
 
-    return df_filtered
-
-# Pré-carrega o CSV
-df_animes = load_csv(CSV_FILE)
-df_animes = df_animes.head(50)
-
-@app.get("/anime/top", response_model=Anime)
-def getTopAnime():
-    top_anime = df_animes.loc[df_animes['rank'].idxmax()]
-    return Anime(**top_anime.to_dict())
+@app.get("/")
+def root():
+    return {"status": "ok"}
 
 # Endpoint paginado
 @app.get("/anime", response_model=list[Anime])
-def get_animes():
+def get_animes(
+    limit: int = Query(20, ge=1, le=20),
+    offset: int = Query(0, ge=0)
+):
+    query = f"""
+        SELECT anime_id, Name, Ranked
+        FROM `{TABLE_ID}`
+        ORDER BY Ranked ASC
+        LIMIT {limit}
+        OFFSET {offset}
+    """
+    
+    df_animes = run_query(query)
+
     if df_animes.empty:
         raise HTTPException(status_code=404, detail="No animes found for this range")
+    
     return df_animes.to_dict(orient="records")
 
 # Endpoint por ID
 @app.get("/anime/{anime_id}", response_model=Anime)
 def get_anime(anime_id: int):
-    anime_row = df_animes[df_animes['anime_id'] == anime_id]
-    if anime_row.empty:
+    query = f"""
+        SELECT anime_id, Name, Ranked
+        FROM `{TABLE_ID}`
+        WHERE anime_id = {anime_id}
+        LIMIT 1
+    """
+    
+    df_animes = run_query(query)
+
+    if df_animes.empty:
         raise HTTPException(status_code=404, detail="Anime not found")
-    return anime_row.iloc[0].to_dict()
+    
+    return df_animes.iloc[0].to_dict()
