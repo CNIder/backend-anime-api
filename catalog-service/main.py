@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from google.cloud import bigquery
 from google.oauth2 import service_account 
 import json, os
+from prometheus_fastapi_instrumentator import Instrumentator
 
 class Anime(BaseModel):
     anime_id: int
@@ -11,13 +12,15 @@ class Anime(BaseModel):
 
 app = FastAPI(title="Anime Catalog API")
 
+# prometheus
+Instrumentator().instrument(app).expose(app)
+
 # Load credentials
 json_string = os.environ.get('API_TOKEN') 
 json_file = json.loads(json_string) 
 credentials = service_account.Credentials.from_service_account_info(json_file) 
 client = bigquery.Client(credentials=credentials, location="europe-west1")
 
-# 👉 CHANGE THIS to your actual project.dataset.table
 TABLE_ID = "cm-labs-exemplo.projeto.anime"
 
 # Helper function to run queries

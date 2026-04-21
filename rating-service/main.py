@@ -7,8 +7,8 @@ import asyncio
 app = FastAPI(title="Ratings Service")
 
 # URLs dos microserviços
-USERS_SERVICE_URL = "http://host.docker.internal:8001"
-ANIME_SERVICE_URL = "http://host.docker.internal:8002"
+USERS_SERVICE_URL = "http://user-service:8001"
+ANIME_SERVICE_URL = "http://catalog-service:8002"
 
 
 # ----------- MODELOS -----------
@@ -78,6 +78,10 @@ async def anime_exists(anime_id: int):
 
 # ----------- ENDPOINTS -----------
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
 @app.get("/rating", response_model=List[RatingResponse])
 async def get_ratings():
     result = []
@@ -93,7 +97,7 @@ async def get_ratings():
             "user_id": r.user_id,
             "username": user["username"] if user else None,
             "anime_id": r.anime_id,
-            "anime_title": anime["title"] if anime else None,
+            "anime_title": anime["Name"] if anime else None,
             "score": r.score,
             "comment": r.comment
         })
@@ -145,7 +149,7 @@ async def get_ratings_by_user(user_id: int):
                 "user_id": r.user_id,
                 "username": user["username"] if user else None,
                 "anime_id": r.anime_id,
-                "anime_title": anime["title"] if anime else None,
+                "anime_title": anime["Name"] if anime else None,
                 "score": r.score,
                 "comment": r.comment
             })
@@ -169,7 +173,7 @@ async def get_ratings_by_anime(anime_id: int):
                 "user_id": r.user_id,
                 "username": user["username"] if user else None,
                 "anime_id": r.anime_id,
-                "anime_title": anime["title"] if anime else None,
+                "anime_title": anime["Name"] if anime else None,
                 "score": r.score,
                 "comment": r.comment
             })
