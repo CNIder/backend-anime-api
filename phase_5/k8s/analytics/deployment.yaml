@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics
+  namespace: anime-api
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: analytics
+  template:
+    metadata:
+      labels:
+        app: analytics
+    spec:
+      serviceAccountName: anime-api-sa
+      containers:
+        - name: analytics
+          image: europe-west1-docker.pkg.dev/temp-488519/anime-repo/analytics-bq:phase5
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GCP_PROJECT_ID
+              value: "temp-488519"
+            - name: BQ_DATASET
+              value: "anime_intel_dataset"
+            - name: BQ_TABLE
+              value: "anime_intel"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
