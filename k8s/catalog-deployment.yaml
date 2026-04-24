@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+    spec:
+      containers:
+      - name: catalog-service
+        image: cncc62/anime-service:latest
+        ports:
+        - containerPort: 8002
+        env:
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: bigsecret
+              key: API_TOKEN
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service
+spec:
+  type: ClusterIP
+  selector:
+    app: catalog-service
+  ports:
+  - port: 8002
+    targetPort: 8002
