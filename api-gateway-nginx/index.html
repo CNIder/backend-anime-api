@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Anime API - Endpoints</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 2rem; }
+        h1 { color: #333; }
+        ul { line-height: 1.8; }
+        a { color: #1a73e8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code { background-color: #eee; padding: 2px 6px; border-radius: 4px; }
+        .section { margin-bottom: 2rem; }
+    </style>
+</head>
+<body>
+    <h1>🎉 Bem-vindo à Anime API!</h1>
+    <p>Explora os microserviços disponíveis e seus endpoints:</p>
+
+    <div class="section">
+        <h2>Users Service</h2>
+        <ul>
+            <li><code>GET /users</code> – Listar todos os utilizadores</li>
+            <li><code>GET /users/{user_id}</code> – Obter utilizador pelo ID</li>
+            <li><code>POST /users</code> – Criar novo utilizador</li>
+            <li><code>PUT /users/{user_id}</code> – Atualizar utilizador</li>
+            <li><code>DELETE /users/{user_id}</code> – Remover utilizador</li>
+            <li><a href="/users/docs">📄 Documentação Swagger</a></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Anime Service</h2>
+        <ul>
+            <li><code>GET /anime</code> – Listar animes</li>
+            <li><code>GET /anime/{anime_id}</code> – Obter anime pelo ID</li>
+            <li><a href="/anime/docs">📄 Documentação Swagger</a></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Ratings Service</h2>
+        <ul>
+            <li><code>GET /rating</code> – Listar todas as avaliações</li>
+            <li><code>POST /rating</code> – Criar nova avaliação</li>
+            <li><code>GET /rating/user/{user_id}</code> – Avaliações de um utilizador</li>
+            <li><code>GET /rating/anime/{anime_id}</code> – Avaliações de um anime</li>
+            <li><code>PUT /rating/{rating_id}</code> – Atualizar avaliação</li>
+            <li><code>DELETE /rating/{rating_id}</code> – Remover avaliação</li>
+            <li><a href="/rating/docs">📄 Documentação Swagger</a></li>
+        </ul>
+    </div>
+</body>
+</html>

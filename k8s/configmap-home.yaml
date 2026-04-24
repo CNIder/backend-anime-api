@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-html
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Anime API</title>
+      <style>
+        body {
+          font-family: Arial;
+          background: #009de0; /* azul claro */
+          color: white;
+          text-align: center;
+          padding-top: 100px;
+        }
+        h1 { 
+          font-size: 48px;
+        }
+        a {
+          display: block;
+          margin: 10px;
+          color: white;
+          text-decoration: none;
+          font-size: 20px;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Anime API</h1>
+      <p>Status: Online</p>
+
+      <h2>Endpoints</h2>
+      <a href="/users">/users</a>
+      <a href="/anime">/anime</a>
+      <a href="/rating">/rating</a>
+      <a href="/prometheus">/prometheus</a>
+
+      <h2> Made by Claudio Caetano, Artur e Antonio </h2>
+    </body>
+    </html>
