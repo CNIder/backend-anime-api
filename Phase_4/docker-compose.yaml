@@ -1,0 +1,52 @@
+services:
+  db: # Database service
+    image: postgres:15 # use prebuilt image (no building takes place). In this case the official PostgreSQL image (version 15) from Docker Hub
+    container_name: db
+    environment:
+      POSTGRES_DB: anime # sets up database name
+      POSTGRES_USER: anime_user # database user
+      POSTGRES_PASSWORD: anime_pass # database password
+    ports:
+      - "5433:5432" # host communicates with database
+    volumes:
+      - db_data:/var/lib/postgresql/data # persist data after container stops
+      - ./database:/docker-entrypoint-initdb.d # run init.sql when container starts (build database)
+      - ../data:/data # makes CSVs visible inside container  
+    restart: always # If container crashes, restart automatically
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anime_user -d anime"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  analytics:
+    build: ./analytics
+    container_name: anime_analytics # names container (docker ps)
+    ports:
+      - "8081:8080" # access via localhost:host_port
+    depends_on:
+      # This container depends on more services, which will be integrated later
+      - db # starts db before analytics
+    volumes:
+      # This container will listen on more services, which will be integrated later
+      - ./analytics:/app # Bind working directory to /app
+    restart: always # If container crashes, restart automatically
+
+  recommendations:
+    build: ./recommendations
+    container_name: anime_recommendations # names container (docker ps)
+    ports:
+      - "8082:8080" # access via localhost:container_port
+    depends_on:
+      # This container depends on more services, which will be integrated later
+      db: # starts db before analytics
+        condition: service_healthy
+    volumes:
+      # This container will listen on more services, which will be integrated later
+      - ./recommendations:/app
+      - hf_cache:/root/.cache/huggingface
+    restart: always # If container crashes, restart automatically
+    
+volumes:
+  db_data: # declare volume
+  hf_cache: # declare llm volume

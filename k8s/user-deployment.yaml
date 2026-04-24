@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: cncc62/user-service:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: bigsecret
+              key: API_TOKEN
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  type: ClusterIP
+  selector:
+    app: user-service
+  ports:
+  - port: 8001
+    targetPort: 8001

@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  nginx:
+    build:
+      context: ./api-gateway-nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - user-service
+      - catalog-service
+      - rating-service
+    networks:
+      - app-network
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    expose:
+      - "8001"
+    environment:
+      - API_TOKEN=${API_TOKEN}
+    networks:
+      - app-network
+
+  catalog-service:
+    build:
+      context: ./catalog-service
+      dockerfile: Dockerfile
+    expose:
+      - "8002"
+    environment:
+      - API_TOKEN=${API_TOKEN}
+    networks:
+      - app-network
+
+  rating-service:
+    build:
+      context: ./rating-service
+      dockerfile: Dockerfile
+    expose:
+      - "8003"
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
