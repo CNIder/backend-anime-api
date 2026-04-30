@@ -91,3 +91,5 @@ graph TD
     REV --- DB5[(Review DB)]
     FORUM --- DB6[(Forum DB)]
 ```
+## Claudio Technical Architecture
+![](tech-arch-grupo12.png)
