@@ -5,8 +5,13 @@ from google.cloud import bigquery
 from google.oauth2 import service_account 
 import json, os
 import random
+from prometheus_fastapi_instrumentator import Instrumentator
+
 
 app = FastAPI(title="Users Service")
+
+# Prometheus
+Instrumentator().instrument(app).expose(app)
 
 # Load credentials
 json_string = os.environ.get('API_TOKEN') 
