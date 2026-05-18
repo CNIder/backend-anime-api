@@ -36,7 +36,11 @@ jobs:
       - name: Test app import
         run: |
           python -c "from main import app"
-
+          
+      - name: Run tests
+        run: |
+          pytest tests.py -v
+      
       - name: Start API and test endpoint
         run: |
           uvicorn main:app --host 0.0.0.0 --port 8000 &
