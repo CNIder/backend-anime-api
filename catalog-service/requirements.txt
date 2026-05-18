@@ -7,3 +7,4 @@ pyarrow
 db-dtypes
 prometheus-fastapi-instrumentator
 pytest
+httpx
