@@ -1,0 +1,44 @@
+name: Catalog Service CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+
+    defaults:
+      run:
+        working-directory: catalog-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Test app import
+        run: |
+          python -c "from app import app"
+
+      - name: Start API and test endpoint
+        run: |
+          uvicorn app:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+          curl http://127.0.0.1:8000/
