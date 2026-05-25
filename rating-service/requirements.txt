@@ -5,3 +5,4 @@ httpx
 prometheus-fastapi-instrumentator
 google-cloud-bigquery
 google-auth
+pytest
