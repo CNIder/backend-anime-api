@@ -4,3 +4,5 @@ pydantic
 google-cloud-bigquery
 google-auth
 prometheus-fastapi-instrumentator
+pytest
+httpx
