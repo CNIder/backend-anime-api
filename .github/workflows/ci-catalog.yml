@@ -61,11 +61,11 @@ jobs:
       # -----------------------------
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/catalog-service:latest .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/anime-service:latest .
 
       # -----------------------------
       # Push image
       # -----------------------------
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/catalog-service:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/anime-service:latest
