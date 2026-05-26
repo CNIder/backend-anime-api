@@ -4,14 +4,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'rating-service/**'
 
   pull_request:
     branches:
       - main
-    paths:
-      - 'rating-service/**'
 
 jobs:
   test-and-push:
