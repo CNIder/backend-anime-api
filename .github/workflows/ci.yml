@@ -1,0 +1,38 @@
+name: phase-8-ci
+
+on:
+  push:
+    branches: # Pesky accents :(
+      - "feature/**"
+      - "Antonio-Caldeira"
+      - "António-Caldeira"
+  pull_request:
+    branches: # Pesky accents :(
+      - "Antonio-Caldeira"
+      - "António-Caldeira"
+  workflow_dispatch:
+
+jobs:
+  local-tests:
+    name: Run phase 7 local tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-test.txt
+          python -m pip install -r phase_7/analytics/requirements.txt
+
+      - name: Run local test script
+        env:
+          RECOMMENDATIONS_MODE: smoke
+        run: ./scripts/run-local-tests.sh
