@@ -1,0 +1,19 @@
+#apiVersion: security.istio.io/v1
+#kind: PeerAuthentication
+#metadata:
+#  name: anime-api-mtls
+#  namespace: anime-api
+#spec:
+#  mtls:
+#    mode: PERMISSIVE
+
+
+# If sidecars are fully operational, switch to this:
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: anime-api-mtls
+  namespace: anime-api
+spec:
+  mtls:
+    mode: STRICT

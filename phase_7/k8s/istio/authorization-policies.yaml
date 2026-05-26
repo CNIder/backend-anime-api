@@ -1,0 +1,32 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: analytics-allow-gateway-and-recommendations
+  namespace: anime-api
+spec:
+  selector:
+    matchLabels:
+      app: analytics
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+              - cluster.local/ns/anime-api/sa/anime-api-sa
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: recommendations-allow-gateway
+  namespace: anime-api
+spec:
+  selector:
+    matchLabels:
+      app: recommendations
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account

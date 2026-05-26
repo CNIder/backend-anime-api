@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: analytics-internal-policy
+  namespace: anime-api
+spec:
+  hosts:
+    - analytics.anime-api.svc.cluster.local
+  http:
+    - timeout: 5s
+      retries:
+        attempts: 2
+        perTryTimeout: 2s
+        retryOn: connect-failure,refused-stream,5xx
+      route:
+        - destination:
+            host: analytics.anime-api.svc.cluster.local
+            port:
+              number: 80

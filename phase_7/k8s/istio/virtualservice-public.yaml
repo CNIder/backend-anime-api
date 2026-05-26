@@ -1,0 +1,27 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: anime-api-public-routes
+  namespace: anime-api
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - anime-api-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /analytics
+      route:
+        - destination:
+            host: analytics.anime-api.svc.cluster.local
+            port:
+              number: 80
+    - match:
+        - uri:
+            prefix: /recommendations
+      route:
+        - destination:
+            host: recommendations.anime-api.svc.cluster.local
+            port:
+              number: 80
