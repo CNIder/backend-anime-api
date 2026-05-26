@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "catalog-service/**"
 
   pull_request:
     branches:
       - main
+    paths:
+      - "catalog-service/**"
 
 jobs:
   test-and-push:
