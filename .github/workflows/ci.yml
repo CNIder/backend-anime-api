@@ -35,7 +35,7 @@ jobs:
       - name: Run local test script
         env:
           RECOMMENDATIONS_MODE: smoke
-        run: ./scripts/run-local-tests.sh
+        run: bash scripts/run-local-tests.sh
 
   container-builds:
     name: Build representative container image
@@ -47,4 +47,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build analytics Docker image
-        run: ./scripts/build-phase7-images.sh
+        run: bash scripts/build-phase7-images.sh
