@@ -36,3 +36,15 @@ jobs:
         env:
           RECOMMENDATIONS_MODE: smoke
         run: ./scripts/run-local-tests.sh
+
+  container-builds:
+    name: Build representative container image
+    runs-on: ubuntu-latest
+    needs: local-tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build analytics Docker image
+        run: ./scripts/build-phase7-images.sh
