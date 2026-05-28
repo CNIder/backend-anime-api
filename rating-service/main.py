@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
+from typing import List, Optional
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -26,6 +26,19 @@ Instrumentator().instrument(app).expose(app)
 
 USERS_SERVICE_URL = "http://user-service:8001"
 ANIME_SERVICE_URL = "http://catalog-service:8002"
+
+
+# --------------------------------------------------
+# GLOBAL HTTP CLIENT (REUSED)
+# --------------------------------------------------
+
+http_client = httpx.AsyncClient(
+    timeout=5.0,
+    limits=httpx.Limits(
+        max_keepalive_connections=20,
+        max_connections=100
+    )
+)
 
 
 # --------------------------------------------------
@@ -95,8 +108,9 @@ def run_query(query: str, job_config=None):
 
 
 async def get_user(user_id: int):
-    async with httpx.AsyncClient() as client_http:
-        response = await client_http.get(
+
+    try:
+        response = await http_client.get(
             f"{USERS_SERVICE_URL}/users/{user_id}"
         )
 
@@ -105,10 +119,14 @@ async def get_user(user_id: int):
 
         return response.json()
 
+    except Exception:
+        return None
+
 
 async def get_anime(anime_id: int):
-    async with httpx.AsyncClient() as client_http:
-        response = await client_http.get(
+
+    try:
+        response = await http_client.get(
             f"{ANIME_SERVICE_URL}/anime/{anime_id}"
         )
 
@@ -116,6 +134,9 @@ async def get_anime(anime_id: int):
             return None
 
         return response.json()
+
+    except Exception:
+        return None
 
 
 async def user_exists(user_id: int):
@@ -129,7 +150,7 @@ async def anime_exists(anime_id: int):
 
 
 # --------------------------------------------------
-# ROUTES
+# ROOT
 # --------------------------------------------------
 
 @app.get("/")
@@ -138,38 +159,119 @@ def root():
 
 
 # --------------------------------------------------
-# GET ALL RATINGS
+# GET ALL RATINGS (OPTIMIZED)
 # --------------------------------------------------
 
 @app.get("/rating", response_model=List[RatingResponse])
-async def get_ratings():
+async def get_ratings(
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0)
+):
 
     query = f"""
         SELECT rating_id, user_id, anime_id, score, comment
         FROM `{TABLE_ID}`
         ORDER BY rating_id ASC
+        LIMIT @limit
+        OFFSET @offset
     """
 
-    rows = run_query(query)
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter(
+                "limit",
+                "INT64",
+                limit
+            ),
+            bigquery.ScalarQueryParameter(
+                "offset",
+                "INT64",
+                offset
+            )
+        ]
+    )
+
+    rows = run_query(query, job_config)
+
+    if not rows:
+        return []
+
+    # ----------------------------------------------
+    # DEDUPLICATE IDS
+    # ----------------------------------------------
+
+    unique_user_ids = list({
+        r["user_id"]
+        for r in rows
+    })
+
+    unique_anime_ids = list({
+        r["anime_id"]
+        for r in rows
+    })
+
+    # ----------------------------------------------
+    # FETCH CONCURRENTLY
+    # ----------------------------------------------
+
+    user_tasks = [
+        get_user(user_id)
+        for user_id in unique_user_ids
+    ]
+
+    anime_tasks = [
+        get_anime(anime_id)
+        for anime_id in unique_anime_ids
+    ]
+
+    users_result, anime_result = await asyncio.gather(
+        asyncio.gather(*user_tasks),
+        asyncio.gather(*anime_tasks)
+    )
+
+    # ----------------------------------------------
+    # CREATE LOOKUP MAPS
+    # ----------------------------------------------
+
+    users_map = {
+        user_id: user
+        for user_id, user in zip(
+            unique_user_ids,
+            users_result
+        )
+    }
+
+    anime_map = {
+        anime_id: anime
+        for anime_id, anime in zip(
+            unique_anime_ids,
+            anime_result
+        )
+    }
+
+    # ----------------------------------------------
+    # BUILD RESPONSE
+    # ----------------------------------------------
 
     result = []
 
     for r in rows:
 
-        anime_task = get_anime(r["anime_id"])
-        user_task = get_user(r["user_id"])
-
-        anime, user = await asyncio.gather(
-            anime_task,
-            user_task
-        )
+        user = users_map.get(r["user_id"])
+        anime = anime_map.get(r["anime_id"])
 
         result.append({
             "rating_id": r["rating_id"],
             "user_id": r["user_id"],
-            "username": user["username"] if user else None,
+            "username": (
+                user.get("username")
+                if user else None
+            ),
             "anime_id": r["anime_id"],
-            "anime_title": anime["Name"] if anime else None,
+            "anime_title": (
+                anime.get("Name")
+                if anime else None
+            ),
             "score": r["score"],
             "comment": r["comment"]
         })
@@ -184,19 +286,26 @@ async def get_ratings():
 @app.post("/rating", response_model=Rating, status_code=201)
 async def create_rating(rating: RatingCreate):
 
-    if not await user_exists(rating.user_id):
+    user_task = user_exists(rating.user_id)
+    anime_task = anime_exists(rating.anime_id)
+
+    user_ok, anime_ok = await asyncio.gather(
+        user_task,
+        anime_task
+    )
+
+    if not user_ok:
         raise HTTPException(
             status_code=404,
             detail="User not found"
         )
 
-    if not await anime_exists(rating.anime_id):
+    if not anime_ok:
         raise HTTPException(
             status_code=404,
             detail="Anime not found"
         )
 
-    # prevent duplicate ratings
     duplicate_query = f"""
         SELECT rating_id
         FROM `{TABLE_ID}`
@@ -231,7 +340,10 @@ async def create_rating(rating: RatingCreate):
             detail="Rating already exists"
         )
 
-    # generate next ID
+    # WARNING:
+    # This ID generation is NOT safe under concurrency
+    # Better use UUIDs in production
+
     id_query = f"""
         SELECT COALESCE(MAX(rating_id), 0) + 1 AS next_id
         FROM `{TABLE_ID}`
@@ -288,114 +400,6 @@ async def create_rating(rating: RatingCreate):
         score=rating.score,
         comment=rating.comment
     )
-
-
-# --------------------------------------------------
-# GET RATINGS BY USER
-# --------------------------------------------------
-
-@app.get(
-    "/rating/user/{user_id}",
-    response_model=List[RatingResponse]
-)
-async def get_ratings_by_user(user_id: int):
-
-    query = f"""
-        SELECT rating_id, user_id, anime_id, score, comment
-        FROM `{TABLE_ID}`
-        WHERE user_id = @user_id
-        ORDER BY rating_id ASC
-    """
-
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter(
-                "user_id",
-                "INT64",
-                user_id
-            )
-        ]
-    )
-
-    rows = run_query(query, job_config)
-
-    result = []
-
-    for r in rows:
-
-        anime_task = get_anime(r["anime_id"])
-        user_task = get_user(r["user_id"])
-
-        anime, user = await asyncio.gather(
-            anime_task,
-            user_task
-        )
-
-        result.append({
-            "rating_id": r["rating_id"],
-            "user_id": r["user_id"],
-            "username": user["username"] if user else None,
-            "anime_id": r["anime_id"],
-            "anime_title": anime["Name"] if anime else None,
-            "score": r["score"],
-            "comment": r["comment"]
-        })
-
-    return result
-
-
-# --------------------------------------------------
-# GET RATINGS BY ANIME
-# --------------------------------------------------
-
-@app.get(
-    "/rating/anime/{anime_id}",
-    response_model=List[RatingResponse]
-)
-async def get_ratings_by_anime(anime_id: int):
-
-    query = f"""
-        SELECT rating_id, user_id, anime_id, score, comment
-        FROM `{TABLE_ID}`
-        WHERE anime_id = @anime_id
-        ORDER BY rating_id ASC
-    """
-
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter(
-                "anime_id",
-                "INT64",
-                anime_id
-            )
-        ]
-    )
-
-    rows = run_query(query, job_config)
-
-    result = []
-
-    for r in rows:
-
-        anime_task = get_anime(r["anime_id"])
-        user_task = get_user(r["user_id"])
-
-        anime, user = await asyncio.gather(
-            anime_task,
-            user_task
-        )
-
-        result.append({
-            "rating_id": r["rating_id"],
-            "user_id": r["user_id"],
-            "username": user["username"] if user else None,
-            "anime_id": r["anime_id"],
-            "anime_title": anime["Name"] if anime else None,
-            "score": r["score"],
-            "comment": r["comment"]
-        })
-
-    return result
 
 
 # --------------------------------------------------
@@ -495,31 +499,6 @@ def update_rating(
 
 @app.delete("/rating/{rating_id}", status_code=204)
 def delete_rating(rating_id: int):
-
-    check_query = f"""
-        SELECT rating_id
-        FROM `{TABLE_ID}`
-        WHERE rating_id = @rating_id
-        LIMIT 1
-    """
-
-    check_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter(
-                "rating_id",
-                "INT64",
-                rating_id
-            )
-        ]
-    )
-
-    rows = run_query(check_query, check_config)
-
-    if not rows:
-        raise HTTPException(
-            status_code=404,
-            detail="Rating not found"
-        )
 
     delete_query = f"""
         DELETE FROM `{TABLE_ID}`
